@@ -1,0 +1,93 @@
+import time
+
+class PID:
+  """
+  PID 控制器类
+  """
+
+  def __init__(self, Kp, Ki, Kd, setpoint, sample_time=0.01, output_limits=(None, None)):
+    """
+    初始化 PID 控制器
+
+    参数:
+      Kp (float): 比例系数
+      Ki (float): 积分系数
+      Kd (float): 微分系数
+      setpoint (float): 目标值
+      sample_time (float): 采样时间 (秒)
+      output_limits (tuple): 控制量输出限制，例如 (0, 100)
+    """
+
+    self.Kp = Kp
+    self.Ki = Ki
+    self.Kd = Kd
+    self.setpoint = setpoint
+    self.sample_time = sample_time
+    self.output_limits = output_limits
+
+    self.last_time = time.time()
+    self.last_error = 0
+    self.integral = 0
+
+  def update(self, feedback_value):
+    """
+    计算 PID 控制量
+
+    参数:
+      feedback_value (float): 反馈值
+
+    返回:
+      float: 控制量
+    """
+
+    # 计算时间差
+    now = time.time()
+    dt = now - self.last_time
+
+    # 如果时间间隔过短，则跳过计算
+    if dt < self.sample_time:
+      return self.output
+
+    # 计算误差
+    error = self.setpoint - feedback_value
+
+    # 计算积分项
+    self.integral += self.Ki * error * dt
+
+    # 限制积分项
+    self.integral = self._clamp(self.integral, self.output_limits)
+
+    # 计算微分项
+    derivative = (error - self.last_error) / dt
+
+    # 计算 PID 输出
+    output = self.Kp * error + self.integral + self.Kd * derivative
+
+    # 限制输出
+    output = self._clamp(output, self.output_limits)
+
+    # 更新状态
+    self.last_time = now
+    self.last_error = error
+    self.output = output
+
+    return output
+
+  def _clamp(self, value, limits):
+    """
+    限制值在指定范围内
+
+    参数:
+      value (float): 待限制的值
+      limits (tuple): 限制范围，例如 (0, 100)
+
+    返回:
+      float: 限制后的值
+    """
+
+    lower, upper = limits
+    if lower is not None and value < lower:
+      return lower
+    elif upper is not None and value > upper:
+      return upper
+    return value
